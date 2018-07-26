@@ -1,20 +1,30 @@
-Pipeline
-  node {
-   stage('Preparation') { // for display purposes
-      // Get some code from a GitHub repository
-      // Get the Maven tool.
-      // ** NOTE: This 'M3' Maven tool must be configured
-      // **       in the global configuration.           
-      M2_HOME = tool 'M2'
-   }
-   stage('Build') {
-      // Run the maven build
-      if (isUnix()) {
-         sh "'${M2_HOME}/bin/mvn' -Dmaven.test.failure.ignore clean package"
-      } else {
-         bat(/"${M2_HOME}\bin\mvn" -Dmaven.test.failure.ignore clean package/)
-      }
-   }
-   stage('Results') {
-      junit '**/target/surefire-reports/TEST-*.xml'
-      archive 'target/*.jar'
+node {
+ 	// Clean workspace before doing anything
+    deleteDir()
+
+    try {
+        stage ('Clone') {
+        	checkout scm
+        }
+        stage ('Build') {
+        	sh "echo 'shell scripts to build project...'"
+        }
+        stage ('Tests') {
+	        parallel 'static': {
+	            sh "echo 'shell scripts to run static tests...'"
+	        },
+	        'unit': {
+	            sh "echo 'shell scripts to run unit tests...'"
+	        },
+	        'integration': {
+	            sh "echo 'shell scripts to run integration tests...'"
+	        }
+        }
+      	stage ('Deploy') {
+            sh "echo 'shell scripts to deploy to server...'"
+      	}
+    } catch (err) {
+        currentBuild.result = 'FAILED'
+        throw err
+    }
+}
